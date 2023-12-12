@@ -1,0 +1,79 @@
+---
+version: '3.9'
+
+services:
+    app:
+        restart: unless-stopped
+        build:
+            context: .
+            dockerfile: docker/app/Dockerfile
+        container_name: cache-dbs-dev-app
+        environment:
+            APPLICATION_ENV: ${APPLICATION_ENV:-development}
+        volumes:
+            - ./:/var/www/html/
+        networks:
+            - cache-dbs-app-network
+
+    nginx:
+        restart: unless-stopped
+        build:
+            context: .
+            dockerfile: docker/nginx/Dockerfile
+        container_name: cache-dbs-dev-nginx
+        volumes:
+            - ./:/var/www/html
+        ports:
+            - "80:80"
+            - "443:443"
+        networks:
+            - cache-dbs-app-network
+
+    redis:
+        restart: unless-stopped
+        image: redis:alpine
+        deploy:
+            resources:
+                limits:
+                    memory: 128M
+                reservations:
+                    memory: 64M
+        container_name: cache-dbs-dev-redis
+        ports:
+            - "63792:6379"
+        networks:
+            - cache-dbs-app-network
+
+    dragonfly:
+        restart: unless-stopped
+        image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+        deploy:
+            resources:
+                limits:
+                    memory: 128M
+                reservations:
+                    memory: 64M
+        container_name: cache-dbs-dev-dragonfly
+        ports:
+            - "63791:6378"
+        networks:
+            - cache-dbs-app-network
+
+    keydb:
+        restart: unless-stopped
+        image: eqalpha/keydb
+        deploy:
+            resources:
+                limits:
+                    memory: 128M
+                reservations:
+                    memory: 64M
+        container_name: cache-dbs-dev-keydb
+        ports:
+            -   "63790:6377"
+        networks:
+            - cache-dbs-app-network
+
+networks:
+    cache-dbs-app-network:
+        driver: bridge
